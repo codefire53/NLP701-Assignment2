@@ -45,14 +45,15 @@ class TrainingArgsConfig(transformers.TrainingArguments):
     evaluation_strategy: str = "epoch"
     save_strategy: str = "epoch"
     save_total_limit: int = 2
+    max_length: int = 1024
 
 
 class Semeval_Data(torch.utils.data.Dataset):
-    def __init__(self, data_path, max_length=1024, inference=False, debug=False):
+    def __init__(self, data_path, model_name, max_length=1024, inference=False, debug=False):
         with open(data_path, "r") as f:
             self.data = [json.loads(line) for line in f]
         self.inference = inference
-        self.tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.max_length = max_length
         self.debug = debug
 
@@ -308,8 +309,8 @@ if __name__ == "__main__":
         model_path, num_labels=2, trust_remote_code=True
     )
 
-    train_set = Semeval_Data(data_args.train_file)
-    dev_set = Semeval_Data(data_args.dev_file)
+    train_set = Semeval_Data(data_args.train_file, model_path, max_length=training_args.max_length)
+    dev_set = Semeval_Data(data_args.dev_file, model_path, max_length=training_args.max_length)
 
     trainer = transformers.Trainer(
         model=model,
@@ -345,7 +346,7 @@ if __name__ == "__main__":
     if training_args.do_predict:
         test_sets = []
         for test_file in data_args.test_files:
-            test_set = Semeval_Data(test_file, inference=True)
+            test_set = Semeval_Data(test_file, model_path, max_length=training_args.max_length, inference=True)
             test_sets.append(test_set)
         logger.info("Predicting...")
         logger.info("*** Test Datasets ***")

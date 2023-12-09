@@ -194,11 +194,11 @@ def load_best_checkpoint(checkpoints_dir: str):
     return best_ckp
 
 class Semeval_Data(torch.utils.data.Dataset):
-    def __init__(self, data_path, max_length=1024, inference=False, debug=False):
+    def __init__(self, data_path, model_name, max_length=1024, inference=False, debug=False):
         with open(data_path, "r") as f:
             self.data = [json.loads(line) for line in f]
         self.inference = inference
-        self.tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.max_length = max_length
         self.debug = debug
 
@@ -325,8 +325,8 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
 
-    train_set = Semeval_Data(data_args.train_file)
-    dev_set = Semeval_Data(data_args.dev_file)
+    train_set = Semeval_Data(data_args.train_file, model_path, max_length=training_args.max_length)
+    dev_set = Semeval_Data(data_args.dev_file, model_path, max_length=training_args.max_length)
 
     train_dataloader = DataLoader(train_set, batch_size=training_args.per_device_train_batch_size, shuffle=True)
     dev_dataloader = DataLoader(dev_set, batch_size=training_args.per_device_eval_batch_size, shuffle=False)
@@ -355,7 +355,7 @@ if __name__ == "__main__":
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
         for test_file in data_args.test_files:
-            test_set = Semeval_Data(test_file, inference=True)
+            test_set = Semeval_Data(test_file, model_path, max_length=training_args.max_length, inference=True)
             test_set = DataLoader(test_set, batch_size=training_args.per_device_eval_batch_size, shuffle=False)
             test_sets.append(test_set)
         logger.info("Predicting...")
